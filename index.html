@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MdToDocs — Markdown to Google Docs &amp; Microsoft Word</title>
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Configure MathJax v3 before loading: standalone SVG (no global fontCache) + programmatic rendering -->
+  <script>
+    window.MathJax = {
+      startup: {
+        typeset: false
+      },
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true,
+        packages: {'[+]': ['ams', 'noerrors', 'noundefined']}
+      },
+      svg: {
+        fontCache: 'none'
+      },
+      options: {
+        enableMenu: false
+      }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.10.0/highlight.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="8" y1="13" x2="16" y2="13"></line>
+          <line x1="8" y1="17" x2="13" y2="17"></line>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>MdToDocs</h1>
+        <span class="brand-subtitle">Paste AI Markdown &rarr; Copy formatted for Docs or Word</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <span class="control-label">Target</span>
+        <div class="target-selector" role="radiogroup" aria-label="Target document editor">
+          <button type="button" class="target-btn active" data-target="gdocs" role="radio" aria-checked="true">
+            <svg class="target-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="8" y1="13" x2="16" y2="13"></line>
+              <line x1="8" y1="17" x2="16" y2="17"></line>
+              <line x1="8" y1="9" x2="10" y2="9"></line>
+            </svg>
+            Google Docs
+          </button>
+          <button type="button" class="target-btn" data-target="word" role="radio" aria-checked="false">
+            <svg class="target-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <path d="M7.5 12.5l1.5 5 1.5-3.5 1.5 3.5 1.5-5"></path>
+            </svg>
+            Microsoft Word
+          </button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label class="control-label" for="math-mode-select">Math</label>
+        <select id="math-mode-select" class="select-input" title="How equations are formatted for paste">
+          <option value="png">Crisp PNG Image</option>
+          <option value="mathml">Native Equation (MathML)</option>
+          <option value="unicode">Editable Unicode Text</option>
+          <option value="latex">Raw LaTeX ($$...$$)</option>
+        </select>
+      </div>
+
+      <div class="action-buttons">
+        <button type="button" id="download-doc-btn" class="btn btn-secondary hidden" title="Download as Word-compatible .doc file">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>.doc</span>
+        </button>
+
+        <button type="button" id="copy-btn" class="btn btn-primary" title="Copy formatted document to clipboard (Cmd/Ctrl+Shift+C)">
+          <svg id="copy-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span id="copy-btn-label">Copy for Google Docs</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- Left Pane: Markdown Editor -->
+    <section class="pane editor-pane" aria-label="Markdown input">
+      <div class="pane-header">
+        <div class="pane-title-group">
+          <h2>Markdown Input</h2>
+          <span id="input-stats" class="stats-pill">0 words</span>
+        </div>
+        <div class="pane-actions">
+          <button type="button" id="paste-btn" class="btn-ghost" title="Paste from clipboard">Paste</button>
+          <button type="button" id="sample-btn" class="btn-ghost" title="Load a comprehensive sample document">Load Sample</button>
+          <button type="button" id="clear-btn" class="btn-ghost btn-ghost-danger" title="Clear input">Clear</button>
+        </div>
+      </div>
+
+      <div class="editor-wrapper" id="drop-zone">
+        <textarea
+          id="markdown-input"
+          spellcheck="false"
+          placeholder="Paste Markdown from any AI agent here...&#10;&#10;Supports:&#10;• Tables, task lists, headings, callouts&#10;• Math equations: $inline$, $$block$$, \(...\), \[...\]&#10;• Syntax-highlighted code blocks &amp; inline code&#10;• Images, links, footnotes, and rich text&#10;&#10;Tip: You can also drag &amp; drop a .md file here."
+        ></textarea>
+        <div class="drop-overlay" id="drop-overlay" aria-hidden="true">
+          <div class="drop-overlay-box">Drop your Markdown (.md) file here</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Pane: Document Preview -->
+    <section class="pane preview-pane" aria-label="Formatted preview">
+      <div class="pane-header">
+        <div class="pane-title-group">
+          <h2>Formatted Preview</h2>
+          <span id="target-badge" class="badge badge-gdocs">Google Docs</span>
+          <span id="status-indicator" class="status-text"></span>
+        </div>
+        <div class="pane-actions">
+          <div class="view-tabs" role="tablist" aria-label="Preview mode">
+            <button type="button" class="view-tab active" data-view="rendered" role="tab" aria-selected="true">Document</button>
+            <button type="button" class="view-tab" data-view="html" role="tab" aria-selected="false">HTML</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-banner" id="target-hint">
+        <!-- Dynamically populated based on selected target and math mode -->
+      </div>
+
+      <div class="preview-canvas" id="preview-canvas">
+        <article id="preview-paper" class="document-paper" aria-live="polite"></article>
+        <pre id="html-source" class="html-source hidden"></pre>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

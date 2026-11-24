@@ -1691,16 +1691,41 @@ def scaled_dot_product_attention(q, k, v, mask=None):
     });
   }
 
+  function applyUrlParams() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const target = params.get('target');
+      if (target === 'gdocs' || target === 'word') {
+        state.target = target;
+        state.mathMode = DEFAULT_MATH_MODE[target];
+      }
+      const math = params.get('math');
+      if (['png', 'mathml', 'unicode', 'latex'].includes(math)) {
+        state.mathMode = math;
+      }
+      const view = params.get('view');
+      if (view === 'rendered' || view === 'html') {
+        state.viewMode = view;
+      }
+      return params.get('sample') === '1';
+    } catch (_) {
+      return false;
+    }
+  }
+
   function init() {
+    const forceSample = applyUrlParams();
     bindEvents();
     updateTargetUI();
     updateViewModeUI();
 
     let saved = null;
-    try {
-      saved = localStorage.getItem(STORAGE_KEY);
-    } catch (_) {
-      saved = null;
+    if (!forceSample) {
+      try {
+        saved = localStorage.getItem(STORAGE_KEY);
+      } catch (_) {
+        saved = null;
+      }
     }
 
     els.input.value = saved !== null ? saved : SAMPLE_MARKDOWN;
